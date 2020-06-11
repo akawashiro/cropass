@@ -276,5 +276,7 @@ func main() {
 			fmt.Println("The length of input is too short for add.")
 			os.Exit(0)
 		}
+	} else if command == "import" {
+		importPass()
 	}
 }
