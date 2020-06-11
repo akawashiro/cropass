@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -85,29 +87,47 @@ func (c *AesCbcPkcs7Cipher) Decrypt(encrypted []byte) ([]byte, error) {
 	return c.unpad(plain), nil
 }
 
+// KeyLength the length of key which is used for padding
+const KeyLength = 32
+
 var cropassPassDir = ""
 
-func getMasterPass() (string, error) {
+func getMasterPass() ([]byte, error) {
 	stdin := bufio.NewScanner(os.Stdin)
 	fmt.Println("master password: ")
 	stdin.Scan()
-	s := stdin.Text()
-	return s, nil
+	s := []byte(stdin.Text())
+
+	if len(s) >= KeyLength {
+		return s, nil
+	} else {
+		padSize := KeyLength - len(s)
+		pad := bytes.Repeat([]byte{byte(padSize)}, padSize)
+		return append(s, pad...), nil
+	}
 }
 
-func getMasterPassWithDoubleCheck() (string, error) {
+func getMasterPassWithDoubleCheck() ([]byte, error) {
 	stdin := bufio.NewScanner(os.Stdin)
+	fmt.Print("master password: ")
 	stdin.Scan()
-	fmt.Println("master password: ")
 	s := stdin.Text()
 
-	fmt.Println("master password again: ")
+	fmt.Print("master password again: ")
+	stdin.Scan()
 	t := stdin.Text()
 
 	if s == t {
-		return s, nil
+		s := ([]byte(s))
+		if len(s) >= KeyLength {
+			return s, nil
+		} else {
+			padSize := KeyLength - len(s)
+			pad := bytes.Repeat([]byte{byte(padSize)}, padSize)
+			return append(s, pad...), nil
+		}
 	} else {
-		return "", errors.New("two passwords does not match")
+		return []byte(""), errors.New("Two passwords do not match. ")
 	}
 }
 
@@ -132,13 +152,29 @@ func add(site string, user string, pass string) {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	c, err := aes.NewCipher([]byte(p))
+	iv := make([]byte, aes.BlockSize)
+	if _, err := rand.Read(iv); err != nil {
+		log.Fatal(err)
+	}
+	c, err := NewAesCbcPkcs7Cipher(p, iv)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
+	en, err := c.Encrypt([]byte(site + " " + user + " " + pass + " " + n))
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	en = append(en, iv...)
 
-	fmt.Println(site + " " + user + " " + pass + " " + n)
+	c, err = NewAesCbcPkcs7Cipher(p, en[len(en)-aes.BlockSize:])
+	de, err := c.Decrypt(en[:len(en)-aes.BlockSize])
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	fmt.Println(string(de))
 }
 
 func importPass() {
