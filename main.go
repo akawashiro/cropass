@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -174,6 +175,16 @@ func showPass(site string) {
 		os.Exit(0)
 	}
 	contents := decryptPassFile(pass)
+	records := strings.Split(contents, "\n")
+	for _, r := range records {
+		if site == "" {
+			fmt.Print(r)
+		} else {
+			if strings.Contains(r, site) {
+				fmt.Print(r)
+			}
+		}
+	}
 	fmt.Print(contents)
 }
 
@@ -245,7 +256,6 @@ func main() {
 		fmt.Println("CROPASS_PASS_DIR is not setted.")
 		os.Exit(0)
 	}
-	fmt.Println(cropassPassFile)
 	if len(os.Args) < 2 {
 		fmt.Println("The length of input is too short.")
 		os.Exit(0)
