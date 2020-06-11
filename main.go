@@ -10,33 +10,31 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
 
-// BlockCipher はブロック暗号を表現する
+// BlockCipher represents block cipher.
 type BlockCipher interface {
 	Encrypt(plain []byte) ([]byte, error)
 	Decrypt(encrypted []byte) ([]byte, error)
 }
 
-// AesCbcPkcs7Cipher はAES/CBC/PKCS7 のブロック暗号を表現する
+// AesCbcPkcs7Cipher encrypts with AES/CBC/PKCS7.
 type AesCbcPkcs7Cipher struct {
-	// 初期ベクトル
 	initialVector []byte
-	// ブロック暗号
-	block cipher.Block
+	block         cipher.Block
 }
 
-// NewAesCbcPkcs7Cipher は AES/CBC/PKCS#7 のブロック暗号を作成し、返却する
+// NewAesCbcPkcs7Cipher make new AesCbcPkcs7Cipher.
 func NewAesCbcPkcs7Cipher(key, iv []byte) (*AesCbcPkcs7Cipher, error) {
-	// 鍵長チェック
 	keyLen := len(key)
 	if (keyLen != 16) && (keyLen != 24) && (keyLen != 32) {
 		return nil, errors.New("illegal key length. key length for AES must be 128, 192, 256 bit")
 	}
-	// 初期ベクトル長チェック
 	if len(iv) != aes.BlockSize {
 		return nil, errors.New("illegal initial vector size")
 	}
@@ -51,39 +49,34 @@ func NewAesCbcPkcs7Cipher(key, iv []byte) (*AesCbcPkcs7Cipher, error) {
 	}, nil
 }
 
-// pad は RFC 5652 6.3. Content-encryption Process に記述された通りに
-// b にパディングとしてのバイトを追加する (PKCS#7 Padding)
+// pad function make padding according to RFC 5652 6.3. Content-encryption Process  (PKCS#7 Padding)
 func (c *AesCbcPkcs7Cipher) pad(b []byte) []byte {
 	padSize := aes.BlockSize - (len(b) % aes.BlockSize)
 	pad := bytes.Repeat([]byte{byte(padSize)}, padSize)
 	return append(b, pad...)
 }
 
-// unpad は PKCS#7 Padding に従って付与されたパディングを削除する
+// unpad function delete padding according to PKCS#7 Padding
 func (c *AesCbcPkcs7Cipher) unpad(b []byte) []byte {
 	padSize := int(b[len(b)-1])
 	return b[:len(b)-padSize]
 }
 
-// Encrypt は plain を AES/CBC/PKCS#7 で暗号化する。
+// Encrypt plain with AES/CBC/PKCS#7.
 func (c *AesCbcPkcs7Cipher) Encrypt(plain []byte) ([]byte, error) {
 	encrypter := cipher.NewCBCEncrypter(c.block, c.initialVector)
-
-	// PKCS#7 に沿ってパディングを付与
 	padded := c.pad(plain)
-	// 暗号化
 	encrypted := make([]byte, len(padded))
 	encrypter.CryptBlocks(encrypted, padded)
 	return encrypted, nil
 }
 
-// Decrypt は encrypted を AES/CBC/PKCS#7 で復号化する
+// Decrypt plain with AES/CBC/PKCS#7.
 func (c *AesCbcPkcs7Cipher) Decrypt(encrypted []byte) ([]byte, error) {
 	mode := cipher.NewCBCDecrypter(c.block, c.initialVector)
 
 	plain := make([]byte, len(encrypted))
 	mode.CryptBlocks(plain, encrypted)
-	// パディングを除去
 	return c.unpad(plain), nil
 }
 
@@ -91,10 +84,53 @@ func (c *AesCbcPkcs7Cipher) Decrypt(encrypted []byte) ([]byte, error) {
 const KeyLength = 32
 
 var cropassPassDir = ""
+var cropassPassFile = ""
+
+func encryptPassFile(pass []byte, contents string) {
+	iv := make([]byte, aes.BlockSize)
+	if _, err := rand.Read(iv); err != nil {
+		log.Fatal(err)
+	}
+	c, err := NewAesCbcPkcs7Cipher(pass, iv)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	en, err := c.Encrypt([]byte(contents))
+	en = append(en, iv...)
+
+	_, err = os.Stat(cropassPassFile)
+	if !os.IsNotExist(err) {
+		now := time.Now().Unix()
+		n := strconv.FormatInt(now, 10)
+		os.Rename(cropassPassFile, filepath.Join(cropassPassDir, "cropass-secret-"+n))
+	}
+	ioutil.WriteFile(cropassPassFile, en, 644)
+}
+
+func decryptPassFile(pass []byte) string {
+	_, err := os.Stat(cropassPassFile)
+	if os.IsNotExist(err) {
+		return ""
+	}
+
+	en, err := ioutil.ReadFile(cropassPassFile)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	c, err := NewAesCbcPkcs7Cipher(pass, en[len(en)-aes.BlockSize:])
+	de, err := c.Decrypt(en[:len(en)-aes.BlockSize])
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	return string(de)
+}
 
 func getMasterPass() ([]byte, error) {
 	stdin := bufio.NewScanner(os.Stdin)
-	fmt.Println("master password: ")
+	fmt.Print("master password: ")
 	stdin.Scan()
 	s := []byte(stdin.Text())
 
@@ -131,61 +167,85 @@ func getMasterPassWithDoubleCheck() ([]byte, error) {
 	}
 }
 
-func show(site string) {
-	passFiles, err := ioutil.ReadDir(cropassPassDir)
+func showPass(site string) {
+	pass, err := getMasterPass()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(0)
 	}
-	for _, file := range passFiles {
-		fmt.Println(file.Name())
-	}
+	contents := decryptPassFile(pass)
+	fmt.Print(contents)
 }
 
-func new(site string, user string) {
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		j, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			panic(err)
+		}
+		b[i] = letters[j.Int64()]
+	}
+	return string(b)
 }
 
-func add(site string, user string, pass string) {
-	now := time.Now().Unix()
-	n := strconv.FormatInt(now, 10)
-	p, err := getMasterPassWithDoubleCheck()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
-	iv := make([]byte, aes.BlockSize)
-	if _, err := rand.Read(iv); err != nil {
-		log.Fatal(err)
-	}
-	c, err := NewAesCbcPkcs7Cipher(p, iv)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
-	en, err := c.Encrypt([]byte(site + " " + user + " " + pass + " " + n))
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
-	en = append(en, iv...)
+func newPass(site string, user string) {
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	passForSite := randSeq(16)
+	newline := site + " " + user + " " + passForSite + " " + now + "\n"
 
-	c, err = NewAesCbcPkcs7Cipher(p, en[len(en)-aes.BlockSize:])
-	de, err := c.Decrypt(en[:len(en)-aes.BlockSize])
+	pass, err := getMasterPassWithDoubleCheck()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	fmt.Println(string(de))
+	contents := decryptPassFile(pass) + newline
+	encryptPassFile(pass, contents)
+	fmt.Print(newline)
+}
+
+func addPass(site string, user string, passForSite string) {
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	newline := site + " " + user + " " + passForSite + " " + now + "\n"
+
+	pass, err := getMasterPassWithDoubleCheck()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	contents := decryptPassFile(pass) + newline
+	encryptPassFile(pass, contents)
+	fmt.Print(newline)
 }
 
 func importPass() {
+	fmt.Print("Plain text password file: ")
+	stdin := bufio.NewScanner(os.Stdin)
+	stdin.Scan()
+	filename := stdin.Text()
+	importContents, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+	pass, err := getMasterPassWithDoubleCheck()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	contents := decryptPassFile(pass)
+	encryptPassFile(pass, contents+string(importContents))
 }
 
 func main() {
 	cropassPassDir = os.Getenv("CROPASS_PASS_DIR")
+	cropassPassFile = filepath.Join(cropassPassDir, "cropass-secret")
 	if cropassPassDir == "" {
 		fmt.Println("CROPASS_PASS_DIR is not setted.")
 		os.Exit(0)
 	}
+	fmt.Println(cropassPassFile)
 	if len(os.Args) < 2 {
 		fmt.Println("The length of input is too short.")
 		os.Exit(0)
@@ -196,12 +256,12 @@ func main() {
 		if 3 <= len(os.Args) {
 			site = os.Args[2]
 		}
-		show(site)
+		showPass(site)
 	} else if command == "new" {
 		if 4 <= len(os.Args) {
 			site := os.Args[2]
 			user := os.Args[3]
-			new(site, user)
+			newPass(site, user)
 		} else {
 			fmt.Println("The length of input is too short for new.")
 			os.Exit(0)
@@ -211,7 +271,7 @@ func main() {
 			site := os.Args[2]
 			user := os.Args[3]
 			pass := os.Args[4]
-			add(site, user, pass)
+			addPass(site, user, pass)
 		} else {
 			fmt.Println("The length of input is too short for add.")
 			os.Exit(0)
