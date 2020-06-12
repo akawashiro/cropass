@@ -134,7 +134,7 @@ func decryptPassFile(pass []byte) string {
 
 func getMasterPass() ([]byte, error) {
 	fmt.Print("master password: ")
-	pwd, err := terminal.ReadPassword(syscall.Stdin)
+	pwd, err := terminal.ReadPassword(int(syscall.Stdin))
 	fmt.Println("")
 	if err != nil {
 		fmt.Println(err)
@@ -153,7 +153,7 @@ func getMasterPass() ([]byte, error) {
 
 func getMasterPassWithDoubleCheck() ([]byte, error) {
 	fmt.Print("master password: ")
-	pwd, err := terminal.ReadPassword(syscall.Stdin)
+	pwd, err := terminal.ReadPassword(int(syscall.Stdin))
 	fmt.Println("")
 	if err != nil {
 		fmt.Println(err)
@@ -162,7 +162,7 @@ func getMasterPassWithDoubleCheck() ([]byte, error) {
 	s := pwd
 
 	fmt.Print("master password again: ")
-	pwd, err = terminal.ReadPassword(syscall.Stdin)
+	pwd, err = terminal.ReadPassword(int(syscall.Stdin))
 	fmt.Println("")
 	if err != nil {
 		fmt.Println(err)
@@ -192,7 +192,7 @@ func showPass(site string) {
 	contents := decryptPassFile(pass)
 	records := strings.Split(contents, "\n")
 	for _, r := range records {
-		if r == ""{
+		if r == "" {
 			continue
 		}
 		if site == "" {
