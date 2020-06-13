@@ -88,6 +88,12 @@ func (c *AesCbcPkcs7Cipher) Decrypt(encrypted []byte) ([]byte, error) {
 const KeyLength = 32
 const fileMode = 644
 
+// FileHeader must be 8 length.
+const FileHeader = []byte("CRP00000")
+
+// FileHeaderLength must be 8.
+const FileHeaderLength = 8
+
 var cropassPassDir = ""
 var cropassPassFile = ""
 
@@ -102,7 +108,7 @@ func encryptPassFile(pass []byte, contents string) {
 		os.Exit(0)
 	}
 	en, err := c.Encrypt([]byte(contents))
-	en = append(en, iv...)
+	en = append(FileHeader, en, iv...)
 
 	_, err = os.Stat(cropassPassFile)
 	if !os.IsNotExist(err) {
@@ -125,7 +131,7 @@ func decryptPassFile(pass []byte) string {
 		os.Exit(0)
 	}
 	c, err := NewAesCbcPkcs7Cipher(pass, en[len(en)-aes.BlockSize:])
-	de, err := c.Decrypt(en[:len(en)-aes.BlockSize])
+	de, err := c.Decrypt(en[FileHeaderLength : len(en)-aes.BlockSize])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
