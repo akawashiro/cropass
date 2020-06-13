@@ -304,7 +304,7 @@ func main() {
 		fmt.Println("CROPASS_PASS_DIR is not setted. Use " + cropassPassDir + " instead. ")
 	}
 	if len(os.Args) < 2 {
-		fmt.Println("The length of input is too short.")
+		fmt.Println("You must specify one of `show` ,`new`, `add`, or `import`. ")
 		os.Exit(0)
 	}
 	command := os.Args[1]
@@ -315,24 +315,26 @@ func main() {
 		}
 		showPass(site)
 	} else if command == "new" {
-		if 4 <= len(os.Args) {
+		if 4 == len(os.Args) {
 			site := os.Args[2]
 			user := os.Args[3]
 			newPass(site, user)
 		} else {
-			fmt.Println("The length of input is too short for new.")
+			fmt.Println("The length of input is wrong for new. \nUsage: `cropass new {site} {user}`")
 			os.Exit(0)
 		}
 	} else if command == "add" {
-		if 5 <= len(os.Args) {
+		if 4 == len(os.Args) {
 			site := os.Args[2]
 			user := os.Args[3]
 			addPass(site, user)
 		} else {
-			fmt.Println("The length of input is too short for add.")
+			fmt.Println("The length of input is wrong for add. \nUsage: `cropass add {site} {user}`")
 			os.Exit(0)
 		}
 	} else if command == "import" {
 		importPass()
+	} else{
+		fmt.Println("Wrong subcommand. You must specify one of `show` ,`new`, `add`, or `import`. ")
 	}
 }
