@@ -25,7 +25,7 @@ cropass new {site} {username}
 ```
 cropass import
 ```
-The format of file is following. Although {unixtime} can be arbitary positive integer, we recommend you to use the current unix time in seconds.
+The format of file is following. Although {unixtime} can be arbitrary positive integer, we recommend you to use the current unix time in seconds.
 ```
 {site1} {username1} {password1} {unixtime1}
 {site2} {username2} {password2} {unixtime2}
