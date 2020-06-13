@@ -1,5 +1,5 @@
 # cropass
-`cropass` is simple password manager written in [Go](https://golang.org/). `cropass` works anywhere golang runs.
+`cropass` is simple password manager written in [Go](https://golang.org/). `cropass` works anywhere Go runs.
 ## Install
 If you haven't install Go in your computer, please check [https://golang.org/doc/install](https://golang.org/doc/install). Then, you can install cropass with the following command.
 ```sh
