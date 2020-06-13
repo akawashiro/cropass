@@ -89,7 +89,7 @@ const KeyLength = 32
 const fileMode = 644
 
 // FileHeader must be 8 length.
-const FileHeader = [8]byte("CRP00000")
+var FileHeader = []byte("CRP00000")
 
 // FileHeaderLength must be 8.
 const FileHeaderLength = 8
@@ -108,7 +108,8 @@ func encryptPassFile(pass []byte, contents string) {
 		os.Exit(0)
 	}
 	en, err := c.Encrypt([]byte(contents))
-	en = append(FileHeader, en, iv...)
+	en = append(FileHeader, en...)
+	en = append(en, iv...)
 
 	_, err = os.Stat(cropassPassFile)
 	if !os.IsNotExist(err) {
