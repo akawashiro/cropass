@@ -13,7 +13,7 @@ cropass show {sitename}
 ```
 #### Add new password
 ```
-cropass add {site} {username} {password}
+cropass add {site} {username}
 ```
 #### Add new password (the new password is automatically generated)
 ```

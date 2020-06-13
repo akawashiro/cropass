@@ -217,7 +217,19 @@ func newPass(site string, user string) {
 	fmt.Print(newline)
 }
 
-func addPass(site string, user string, passForSite string) {
+func addPass(site string, user string) {
+	stdin := bufio.NewScanner(os.Stdin)
+	fmt.Print("password: ")
+	stdin.Scan()
+	passForSite := stdin.Text()
+	fmt.Print("password again: ")
+	stdin.Scan()
+	passForSite2 := stdin.Text()
+	if passForSite != passForSite2 {
+		fmt.Println("Two passwords do not match. ")
+		os.Exit(0)
+	}
+
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	newline := site + " " + user + " " + passForSite + " " + now + "\n"
 
@@ -280,8 +292,7 @@ func main() {
 		if 5 <= len(os.Args) {
 			site := os.Args[2]
 			user := os.Args[3]
-			pass := os.Args[4]
-			addPass(site, user, pass)
+			addPass(site, user)
 		} else {
 			fmt.Println("The length of input is too short for add.")
 			os.Exit(0)
