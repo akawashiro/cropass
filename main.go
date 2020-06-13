@@ -15,7 +15,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // BlockCipher represents block cipher.
@@ -130,10 +133,14 @@ func decryptPassFile(pass []byte) string {
 }
 
 func getMasterPass() ([]byte, error) {
-	stdin := bufio.NewScanner(os.Stdin)
 	fmt.Print("master password: ")
-	stdin.Scan()
-	s := []byte(stdin.Text())
+	pwd, err := terminal.ReadPassword(int(syscall.Stdin))
+	fmt.Println("")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	s := []byte(pwd)
 
 	if len(s) >= KeyLength {
 		return s, nil
@@ -145,17 +152,25 @@ func getMasterPass() ([]byte, error) {
 }
 
 func getMasterPassWithDoubleCheck() ([]byte, error) {
-	stdin := bufio.NewScanner(os.Stdin)
 	fmt.Print("master password: ")
-	stdin.Scan()
-	s := stdin.Text()
+	pwd, err := terminal.ReadPassword(int(syscall.Stdin))
+	fmt.Println("")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	s := pwd
 
 	fmt.Print("master password again: ")
-	stdin.Scan()
-	t := stdin.Text()
+	pwd, err = terminal.ReadPassword(int(syscall.Stdin))
+	fmt.Println("")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	t := pwd
 
-	if s == t {
-		s := ([]byte(s))
+	if string(s) == string(t) {
 		if len(s) >= KeyLength {
 			return s, nil
 		} else {
@@ -177,15 +192,17 @@ func showPass(site string) {
 	contents := decryptPassFile(pass)
 	records := strings.Split(contents, "\n")
 	for _, r := range records {
+		if r == "" {
+			continue
+		}
 		if site == "" {
-			fmt.Print(r)
+			fmt.Println(r)
 		} else {
 			if strings.Contains(r, site) {
-				fmt.Print(r)
+				fmt.Println(r)
 			}
 		}
 	}
-	fmt.Print(contents)
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
