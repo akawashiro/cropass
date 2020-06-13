@@ -89,7 +89,7 @@ const KeyLength = 32
 const fileMode = 644
 
 // FileHeader must be 8 length.
-const FileHeader = []byte("CRP00000")
+const FileHeader = [8]byte("CRP00000")
 
 // FileHeaderLength must be 8.
 const FileHeaderLength = 8
