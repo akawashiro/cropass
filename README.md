@@ -5,7 +5,7 @@ cropass is simple password manager written in Go. cropass works anywhere golang 
 go get github.com/akawashiro/cropass
 ```
 ## How to use
-First, you must set `CROPASS_PASS_DIR` environment variable. cropass stores encrypted your passwords under the directory.
+First, you should set `CROPASS_PASS_DIR` environment variable. If you don't set, `cropass` uses `cropass-encrypted-passwords` direcotry in the home directory. `cropass` stores encrypted your passwords under the directory.
 
 #### Check your password
 ```

@@ -86,6 +86,7 @@ func (c *AesCbcPkcs7Cipher) Decrypt(encrypted []byte) ([]byte, error) {
 
 // KeyLength the length of key which is used for padding
 const KeyLength = 32
+const fileMode = 644
 
 var cropassPassDir = ""
 var cropassPassFile = ""
@@ -109,7 +110,7 @@ func encryptPassFile(pass []byte, contents string) {
 		n := strconv.FormatInt(now, 10)
 		os.Rename(cropassPassFile, filepath.Join(cropassPassDir, "cropass-secret-"+n))
 	}
-	ioutil.WriteFile(cropassPassFile, en, 644)
+	ioutil.WriteFile(cropassPassFile, en, fileMode)
 }
 
 func decryptPassFile(pass []byte) string {
@@ -267,7 +268,8 @@ func importPass() {
 	filename := stdin.Text()
 	importContents, err := ioutil.ReadFile(filename)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(0)
 	}
 	pass, err := getMasterPassWithDoubleCheck()
 	if err != nil {
@@ -282,8 +284,17 @@ func main() {
 	cropassPassDir = os.Getenv("CROPASS_PASS_DIR")
 	cropassPassFile = filepath.Join(cropassPassDir, "cropass-secret")
 	if cropassPassDir == "" {
-		fmt.Println("CROPASS_PASS_DIR is not setted.")
-		os.Exit(0)
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(0)
+		}
+		cropassPassDir = filepath.Join(home, "cropass-encrypted-passwords")
+		if _, err := os.Stat(cropassPassDir); os.IsNotExist(err) {
+			os.Mkdir(cropassPassDir, fileMode)
+		}
+
+		fmt.Println("CROPASS_PASS_DIR is not setted. Use " + cropassPassDir + " instead. ")
 	}
 	if len(os.Args) < 2 {
 		fmt.Println("The length of input is too short.")
