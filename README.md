@@ -32,3 +32,5 @@ The format of file is following. Although {unixtime} can be arbitrary positive i
 {site3} {username3} {password3} {unixtime3}
 ...
 ```
+## Contribution or requests
+If you have any comments, feel free to use issues or to make pull requests.
