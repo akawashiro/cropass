@@ -243,20 +243,29 @@ func newPass(site string, user string) {
 }
 
 func addPass(site string, user string) {
-	stdin := bufio.NewScanner(os.Stdin)
 	fmt.Print("password: ")
-	stdin.Scan()
-	passForSite := stdin.Text()
+	passForSite, err := terminal.ReadPassword(int(syscall.Stdin))
+	fmt.Println("")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+
 	fmt.Print("password again: ")
-	stdin.Scan()
-	passForSite2 := stdin.Text()
-	if passForSite != passForSite2 {
+	passForSite2, err := terminal.ReadPassword(int(syscall.Stdin))
+	fmt.Println("")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+
+	if string(passForSite) != string(passForSite2) {
 		fmt.Println("Two passwords do not match. ")
 		os.Exit(0)
 	}
 
 	now := strconv.FormatInt(time.Now().Unix(), 10)
-	newline := site + " " + user + " " + passForSite + " " + now + "\n"
+	newline := site + " " + user + " " + string(passForSite) + " " + now + "\n"
 
 	pass, err := getMasterPassWithDoubleCheck()
 	if err != nil {
