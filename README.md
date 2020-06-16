@@ -1,5 +1,5 @@
 # cropass
-`cropass` is simple password manager written in [Go](https://golang.org/). `cropass` works anywhere golang runs.
+`cropass` is simple password manager written in [Go](https://golang.org/). `cropass` works anywhere Go runs.
 ## Install
 If you haven't install Go in your computer, please check [https://golang.org/doc/install](https://golang.org/doc/install). Then, you can install cropass with the following command.
 ```sh
@@ -25,10 +25,12 @@ cropass new {site} {username}
 ```
 cropass import
 ```
-The format of file is following. Although {unixtime} can be arbitary positive integer, we recommend you to use the current unix time in seconds.
+The format of file is following. Although {unixtime} can be arbitrary positive integer, we recommend you to use the current unix time in seconds.
 ```
 {site1} {username1} {password1} {unixtime1}
 {site2} {username2} {password2} {unixtime2}
 {site3} {username3} {password3} {unixtime3}
 ...
 ```
+## Contribution or requests
+If you have any comments, feel free to use issues or to make pull requests.
