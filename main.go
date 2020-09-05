@@ -198,16 +198,22 @@ func showPass(site string) {
 		os.Exit(0)
 	}
 	contents := decryptPassFile(pass)
-	records := strings.Split(contents, "\n")
-	for _, r := range records {
-		if r == "" {
+	lines := strings.Split(contents, "\n")
+	for _, l := range lines {
+		if l == "" {
 			continue
 		}
+		r, err := StringToRecord(l)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(0)
+		}
+
 		if site == "" {
-			fmt.Println(r)
+			fmt.Println(r.site + " " + r.name + " " + r.pass)
 		} else {
-			if strings.Contains(r, site) {
-				fmt.Println(r)
+			if strings.Contains(r.site, site) {
+				fmt.Println(r.site + " " + r.name + " " + r.pass)
 			}
 		}
 	}
