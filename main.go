@@ -34,7 +34,7 @@ type AesCbcPkcs7Cipher struct {
 }
 
 // NewAesCbcPkcs7Cipher make new AesCbcPkcs7Cipher.
-func NewAesCbcPkcs7Cipher(key, iv []byte) (*AesCbcPkcs7Cipher, error) {
+func newAesCbcPkcs7Cipher(key, iv []byte) (*AesCbcPkcs7Cipher, error) {
 	keyLen := len(key)
 	if (keyLen != 16) && (keyLen != 24) && (keyLen != 32) {
 		return nil, errors.New("illegal key length. key length for AES must be 128, 192, 256 bit")
@@ -67,7 +67,7 @@ func (c *AesCbcPkcs7Cipher) unpad(b []byte) []byte {
 }
 
 // Encrypt plain with AES/CBC/PKCS#7.
-func (c *AesCbcPkcs7Cipher) Encrypt(plain []byte) ([]byte, error) {
+func (c *AesCbcPkcs7Cipher) encrypt(plain []byte) ([]byte, error) {
 	encrypter := cipher.NewCBCEncrypter(c.block, c.initialVector)
 	padded := c.pad(plain)
 	encrypted := make([]byte, len(padded))
@@ -76,7 +76,7 @@ func (c *AesCbcPkcs7Cipher) Encrypt(plain []byte) ([]byte, error) {
 }
 
 // Decrypt plain with AES/CBC/PKCS#7.
-func (c *AesCbcPkcs7Cipher) Decrypt(encrypted []byte) ([]byte, error) {
+func (c *AesCbcPkcs7Cipher) decrypt(encrypted []byte) ([]byte, error) {
 	mode := cipher.NewCBCDecrypter(c.block, c.initialVector)
 
 	plain := make([]byte, len(encrypted))
@@ -85,11 +85,11 @@ func (c *AesCbcPkcs7Cipher) Decrypt(encrypted []byte) ([]byte, error) {
 }
 
 // KeyLength the length of key which is used for padding
-const KeyLength = 32
+const keyLength = 32
 const fileMode = 644
 
 // FileHeader must be 8 length.
-var FileHeader = []byte("CRP00000")
+var fileHeader = []byte("CRP00000")
 
 // FileHeaderLength must be 8.
 const FileHeaderLength = 8
@@ -102,13 +102,13 @@ func encryptPassFile(pass []byte, contents string) {
 	if _, err := rand.Read(iv); err != nil {
 		log.Fatal(err)
 	}
-	c, err := NewAesCbcPkcs7Cipher(pass, iv)
+	c, err := newAesCbcPkcs7Cipher(pass, iv)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	en, err := c.Encrypt([]byte(contents))
-	en = append(FileHeader, en...)
+	en, err := c.encrypt([]byte(contents))
+	en = append(fileHeader, en...)
 	en = append(en, iv...)
 
 	_, err = os.Stat(cropassPassFile)
@@ -131,8 +131,8 @@ func decryptPassFile(pass []byte) string {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	c, err := NewAesCbcPkcs7Cipher(pass, en[len(en)-aes.BlockSize:])
-	de, err := c.Decrypt(en[FileHeaderLength : len(en)-aes.BlockSize])
+	c, err := newAesCbcPkcs7Cipher(pass, en[len(en)-aes.BlockSize:])
+	de, err := c.decrypt(en[FileHeaderLength : len(en)-aes.BlockSize])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
@@ -150,10 +150,10 @@ func getMasterPass() ([]byte, error) {
 	}
 	s := []byte(pwd)
 
-	if len(s) >= KeyLength {
+	if len(s) >= keyLength {
 		return s, nil
 	} else {
-		padSize := KeyLength - len(s)
+		padSize := keyLength - len(s)
 		pad := bytes.Repeat([]byte{byte(padSize)}, padSize)
 		return append(s, pad...), nil
 	}
@@ -179,10 +179,10 @@ func getMasterPassWithDoubleCheck() ([]byte, error) {
 	t := pwd
 
 	if string(s) == string(t) {
-		if len(s) >= KeyLength {
+		if len(s) >= keyLength {
 			return s, nil
 		} else {
-			padSize := KeyLength - len(s)
+			padSize := keyLength - len(s)
 			pad := bytes.Repeat([]byte{byte(padSize)}, padSize)
 			return append(s, pad...), nil
 		}
@@ -343,7 +343,7 @@ func main() {
 		}
 	} else if command == "import" {
 		importPass()
-	} else{
+	} else {
 		fmt.Println("Wrong subcommand. You must specify one of `show` ,`new`, `add`, or `import`. ")
 	}
 }
