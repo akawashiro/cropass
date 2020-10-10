@@ -191,6 +191,18 @@ func getMasterPassWithDoubleCheck() ([]byte, error) {
 	}
 }
 
+
+func dumpPass() {
+	pass, err := getMasterPass()
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(0)
+	}
+	contents := decryptPassFile(pass)
+    fmt.Println(contents)
+}
+
+
 func showPass(site string) {
 	pass, err := getMasterPass()
 	if err != nil {
@@ -283,7 +295,7 @@ func addPass(site string, user string) {
 	fmt.Print(newline)
 }
 
-func importPass() {
+func importPass(reset bool) {
 	fmt.Print("Plain text password file: ")
 	stdin := bufio.NewScanner(os.Stdin)
 	stdin.Scan()
@@ -298,8 +310,13 @@ func importPass() {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	contents := decryptPassFile(pass)
-	encryptPassFile(pass, contents+string(importContents))
+
+    if(reset){
+	    encryptPassFile(pass, string(importContents))
+    }else{
+	    contents := decryptPassFile(pass)
+	    encryptPassFile(pass, contents+string(importContents))
+    }
 }
 
 func main() {
@@ -319,7 +336,7 @@ func main() {
 		fmt.Println("CROPASS_PASS_DIR is not setted. Use " + cropassPassDir + " instead. ")
 	}
 	if len(os.Args) < 2 {
-		fmt.Println("You must specify one of `show` ,`new`, `add`, or `import`. ")
+		fmt.Println("You must specify one of `show` ,`new`, `add`, `dump`, `import`, or `import-reset`. ")
 		os.Exit(0)
 	}
 	command := os.Args[1]
@@ -329,7 +346,9 @@ func main() {
 			site = os.Args[2]
 		}
 		showPass(site)
-	} else if command == "new" {
+	} else if command == "dump" {
+		dumpPass()
+	}  else if command == "new" {
 		if 4 == len(os.Args) {
 			site := os.Args[2]
 			user := os.Args[3]
@@ -348,7 +367,9 @@ func main() {
 			os.Exit(0)
 		}
 	} else if command == "import" {
-		importPass()
+		importPass(false)
+	} else if command == "import-reset" {
+		importPass(true)
 	} else {
 		fmt.Println("Wrong subcommand. You must specify one of `show` ,`new`, `add`, or `import`. ")
 	}
