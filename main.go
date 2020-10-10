@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -191,7 +190,6 @@ func getMasterPassWithDoubleCheck() ([]byte, error) {
 	}
 }
 
-
 func dumpPass() {
 	pass, err := getMasterPass()
 	if err != nil {
@@ -199,9 +197,8 @@ func dumpPass() {
 		os.Exit(0)
 	}
 	contents := decryptPassFile(pass)
-    fmt.Println(contents)
+	fmt.Println(contents)
 }
-
 
 func showPass(site string) {
 	pass, err := getMasterPass()
@@ -295,28 +292,36 @@ func addPass(site string, user string) {
 	fmt.Print(newline)
 }
 
-func importPass(reset bool) {
-	fmt.Print("Plain text password file: ")
-	stdin := bufio.NewScanner(os.Stdin)
-	stdin.Scan()
-	filename := stdin.Text()
+func importPass(filename string, reset bool) {
 	importContents, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(0)
+		os.Exit(1)
 	}
 	pass, err := getMasterPassWithDoubleCheck()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(0)
+		os.Exit(1)
 	}
 
-    if(reset){
-	    encryptPassFile(pass, string(importContents))
-    }else{
-	    contents := decryptPassFile(pass)
-	    encryptPassFile(pass, contents+string(importContents))
-    }
+	if reset {
+		encryptPassFile(pass, string(importContents))
+	} else {
+		contents := decryptPassFile(pass)
+		encryptPassFile(pass, contents+string(importContents))
+	}
+}
+
+func printHelp() {
+	fmt.Println(`You must specify one of show, new, add, dump, import, or import-reset.
+
+show [<query>]: Decrypt and show your password records. You can filter them using a query. 
+new <site> <user>: Store a new record composed of site, user, and password. Password is generated automatically.
+add <site> <user>: Store a new record composed of site, user, and password. You must input the new password.
+import <file>: Import password records from a text file and append them to existing password records.
+    Each line of the file must be <site> <user> <password> <unixtime>.
+import-reseet <file>: Import password records from a text file. All existing password records are discarded.
+    Each line of the file must be <site> <user> <password> <unixtime>.`)
 }
 
 func main() {
@@ -336,8 +341,8 @@ func main() {
 		fmt.Println("CROPASS_PASS_DIR is not setted. Use " + cropassPassDir + " instead. ")
 	}
 	if len(os.Args) < 2 {
-		fmt.Println("You must specify one of `show` ,`new`, `add`, `dump`, `import`, or `import-reset`. ")
-		os.Exit(0)
+		printHelp()
+		os.Exit(1)
 	}
 	command := os.Args[1]
 	if command == "show" {
@@ -348,14 +353,14 @@ func main() {
 		showPass(site)
 	} else if command == "dump" {
 		dumpPass()
-	}  else if command == "new" {
+	} else if command == "new" {
 		if 4 == len(os.Args) {
 			site := os.Args[2]
 			user := os.Args[3]
 			newPass(site, user)
 		} else {
-			fmt.Println("The length of input is wrong for new. \nUsage: `cropass new {site} {user}`")
-			os.Exit(0)
+			fmt.Println("The length of input is wrong for new. \nUsage: `cropass new <site> <user>`")
+			os.Exit(1)
 		}
 	} else if command == "add" {
 		if 4 == len(os.Args) {
@@ -363,14 +368,27 @@ func main() {
 			user := os.Args[3]
 			addPass(site, user)
 		} else {
-			fmt.Println("The length of input is wrong for add. \nUsage: `cropass add {site} {user}`")
-			os.Exit(0)
+			fmt.Println("The length of input is wrong for add. \nUsage: `cropass add <site> <user>`")
+			os.Exit(1)
 		}
 	} else if command == "import" {
-		importPass(false)
+		if 3 == len(os.Args) {
+			filename := os.Args[2]
+			importPass(filename, false)
+		} else {
+			fmt.Println("The length of input is wrong for import. \nUsage: `cropass import <file>`")
+			os.Exit(1)
+		}
 	} else if command == "import-reset" {
-		importPass(true)
+		if 3 == len(os.Args) {
+			filename := os.Args[2]
+			importPass(filename, false)
+		} else {
+			fmt.Println("The length of input is wrong for import. \nUsage: `cropass import <file>`")
+			os.Exit(1)
+		}
 	} else {
-		fmt.Println("Wrong subcommand. You must specify one of `show` ,`new`, `add`, or `import`. ")
+		fmt.Println("Wrong subcommand.")
+		printHelp()
 	}
 }
