@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -25,13 +25,13 @@ func StringToRecord(str string) (Record, error) {
 
 	if len(strs) != 4 {
 		r := Record{"", "", "", 0}
-		return r, errors.New("one line doesn't have four fields")
+		return r, fmt.Errorf("one line doesn't have four fields. %s", str)
 	}
 
 	date, err := strconv.Atoi(strs[3])
 	if err != nil {
 		r := Record{"", "", "", 0}
-		return r, errors.New("the forth field of the line is not a number")
+		return r, fmt.Errorf("the forth field of the line(%s) is not a number", strs[3])
 	}
 
 	return Record{strs[0], strs[1], strs[2], date}, nil
