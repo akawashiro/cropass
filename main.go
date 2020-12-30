@@ -224,7 +224,7 @@ func showPass(site string) {
 		if site == "" {
 			fmt.Println(r.site + " " + r.name + " " + r.pass)
 		} else {
-			if strings.Contains(r.site, site) {
+			if strings.Contains(r.site, site) || strings.Contains(r.name, site) {
 				fmt.Println(r.site + " " + r.name + " " + r.pass)
 			}
 		}
